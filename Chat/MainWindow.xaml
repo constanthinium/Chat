@@ -13,13 +13,14 @@
             <RowDefinition Height="Auto" />
             <RowDefinition />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <Menu>
+        <Menu Name="menu">
             <MenuItem Header="Client" Click="MenuItemClient_Click" Padding="16" />
             <MenuItem Header="Server" Click="MenuItemServer_Click" Padding="16" />
         </Menu>
-        <TextBox Grid.Row="1" Name="textBoxLogs" IsReadOnly="True" />
-        <Grid Grid.Row="2">
+        <TextBox Grid.Row="1" Name="textBoxLogs" IsReadOnly="True" VerticalScrollBarVisibility="Auto" />
+        <Grid Name="gridMessaging" IsEnabled="False" Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition Width="Auto" />
@@ -27,5 +28,8 @@
             <TextBox Name="textBoxMessage" Padding="16" KeyDown="TextBoxMessage_KeyDown" />
             <Button Grid.Column="1" Content="Send" Padding="16" Click="ButtonSend_Click" />
         </Grid>
+        <StatusBar Grid.Row="3">
+            <StatusBarItem Name="statusBarItem" Content=""/>
+        </StatusBar>
     </Grid>
 </Window>

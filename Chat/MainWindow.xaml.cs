@@ -23,13 +23,49 @@ namespace Chat
             InputDialog inputBox = new InputDialog("Enter IP (leave empty for loopback)");
             if (inputBox.ShowDialog() == true)
             {
-                client = new TcpClient();
-                IPAddress address = inputBox.input != "" ? IPAddress.Parse(inputBox.input) : IPAddress.Loopback;
-                client.Connect(address, 80);
-                Log("Connected to " + address);
+                IPAddress address;
+                if (inputBox.input == "")
+                    address = IPAddress.Loopback;
+                else if (IPAddress.TryParse(inputBox.input, out IPAddress parsedAddress))
+                    address = parsedAddress;
+                else
+                {
+                    MessageBox.Show("IP address is incorrect", "Incorrect input", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
+                client = new TcpClient();
+                client.BeginConnect(address, 80, ConnectCallback, address);
+                menu.IsEnabled = false;
+                statusBarItem.Content = "Connecting...";
+            }
+        }
+
+        void ConnectCallback(IAsyncResult ar)
+        {
+            IPAddress address = (IPAddress)ar.AsyncState;
+            Dispatcher.Invoke(() => statusBarItem.Content = "");
+
+            try
+            {
+                client.EndConnect(ar);
+                Log("Connected to " + address);
                 SocketAsyncState state = new SocketAsyncState(client.Client);
                 client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ClientReceiveCallback, state);
+                Dispatcher.Invoke(() =>
+                {
+                    gridMessaging.IsEnabled = true;
+                    textBoxMessage.Focus();
+                });
+            }
+            catch (SocketException e)
+            {
+                if (e.SocketErrorCode == SocketError.ConnectionRefused)
+                {
+                    MessageBox.Show("Cannot connect to " + address, "Server unavailable", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Dispatcher.Invoke(() => menu.IsEnabled = true);
+                    client = null;
+                }
             }
         }
 
@@ -54,6 +90,10 @@ namespace Chat
             listener.Start();
             Log("Listener started");
             listener.BeginAcceptTcpClient(AcceptCallback, listener);
+
+            menu.IsEnabled = false;
+            gridMessaging.IsEnabled = true;
+            textBoxMessage.Focus();
         }
 
         void AcceptCallback(IAsyncResult ar)
@@ -106,16 +146,19 @@ namespace Chat
 
         private void ButtonSend_Click(object sender, RoutedEventArgs e)
         {
-            if (client != null)
-                client.Client.Send(Encoding.UTF8.GetBytes(textBoxMessage.Text));
-            else
+            if (!string.IsNullOrWhiteSpace(textBoxMessage.Text))
             {
-                string message = "server: " + textBoxMessage.Text;
-                foreach (TcpClient client in clients)
-                    client.Client.Send(Encoding.UTF8.GetBytes(message));
-                Log(message);
+                if (client != null)
+                    client.Client.Send(Encoding.UTF8.GetBytes(textBoxMessage.Text));
+                else
+                {
+                    string message = "server: " + textBoxMessage.Text;
+                    foreach (TcpClient client in clients)
+                        client.Client.Send(Encoding.UTF8.GetBytes(message));
+                    Log(message);
+                }
+                textBoxMessage.Clear();
             }
-            textBoxMessage.Clear();
         }
 
         private void TextBoxMessage_KeyDown(object sender, KeyEventArgs e)
