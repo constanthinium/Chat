@@ -118,54 +118,54 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AddressAlreadyInUse" xml:space="preserve">
-    <value>Address already in use</value>
+    <value>Адрес уже используется</value>
   </data>
   <data name="CannotConnectTo" xml:space="preserve">
-    <value>Cannot connect to {0}</value>
+    <value>Невозможно соединиться с {0}</value>
   </data>
   <data name="CannotStartServer" xml:space="preserve">
-    <value>Cannot start server</value>
+    <value>Невозможно запустить сервер</value>
   </data>
   <data name="Chat" xml:space="preserve">
-    <value>Chat</value>
+    <value>Чат</value>
   </data>
   <data name="Client" xml:space="preserve">
-    <value>Client</value>
+    <value>Клиент</value>
   </data>
   <data name="ClientAccepted" xml:space="preserve">
-    <value>Client {0} accepted</value>
+    <value>Клиент {0} принят</value>
   </data>
   <data name="ClientDisconnected" xml:space="preserve">
-    <value>Client {0} disconnected</value>
+    <value>Клиент {0} отсоединен</value>
   </data>
   <data name="ConnectedTo" xml:space="preserve">
-    <value>Connected to {0}</value>
+    <value>Присоединенен к {0}</value>
   </data>
   <data name="Connecting" xml:space="preserve">
-    <value>Connecting...</value>
+    <value>Соединение...</value>
   </data>
   <data name="EnterIP" xml:space="preserve">
-    <value>Enter IP (leave empty for loopback)</value>
+    <value>Введите IP (оставьте пустым для петли)</value>
   </data>
   <data name="IncorrectInput" xml:space="preserve">
-    <value>Incorrect input</value>
+    <value>Некорректный ввод</value>
   </data>
   <data name="IncorrectIP" xml:space="preserve">
-    <value>IP address is incorrect</value>
+    <value>IP некорректный</value>
   </data>
   <data name="Send" xml:space="preserve">
-    <value>Send</value>
+    <value>Отправить</value>
   </data>
   <data name="Server" xml:space="preserve">
-    <value>Server</value>
+    <value>Сервер</value>
   </data>
   <data name="ServerDisconnected" xml:space="preserve">
-    <value>Server {0} disconnected</value>
+    <value>Сервер {0} отсоединился</value>
   </data>
   <data name="ServerStarted" xml:space="preserve">
-    <value>Server started</value>
+    <value>Сервер запущен</value>
   </data>
   <data name="ServerUnavailable" xml:space="preserve">
-    <value>Server unavailable</value>
+    <value>Сервер недоступен</value>
   </data>
 </root>

@@ -20,38 +20,40 @@ namespace Chat
 
         private void MenuItemClient_Click(object sender, RoutedEventArgs e)
         {
-            InputDialog inputBox = new InputDialog("Enter IP (leave empty for loopback)");
+            InputDialog inputBox = new InputDialog(Properties.Resources.EnterIP);
             if (inputBox.ShowDialog() == true)
             {
                 IPAddress address;
-                if (inputBox.input == "")
+                if (string.IsNullOrWhiteSpace(inputBox.input))
                     address = IPAddress.Loopback;
                 else if (IPAddress.TryParse(inputBox.input, out IPAddress parsedAddress))
                     address = parsedAddress;
                 else
                 {
-                    MessageBox.Show("IP address is incorrect", "Incorrect input", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(Properties.Resources.IncorrectIP, Properties.Resources.IncorrectInput,
+                        MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 client = new TcpClient();
                 client.BeginConnect(address, 80, ConnectCallback, address);
                 menu.IsEnabled = false;
-                statusBarItem.Content = "Connecting...";
+                statusBarItem.Content = Properties.Resources.IncorrectIP;
             }
         }
 
         void ConnectCallback(IAsyncResult ar)
         {
             IPAddress address = (IPAddress)ar.AsyncState;
-            Dispatcher.Invoke(() => statusBarItem.Content = "");
+            Dispatcher.Invoke(() => statusBarItem.Content = string.Empty);
 
             try
             {
                 client.EndConnect(ar);
-                Log("Connected to " + address);
+                Log(string.Format(Properties.Resources.ConnectedTo, address));
                 SocketAsyncState state = new SocketAsyncState(client.Client);
-                client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ClientReceiveCallback, state);
+                client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize,
+                    SocketFlags.None, ClientReceiveCallback, state);
                 Dispatcher.Invoke(() =>
                 {
                     gridMessaging.IsEnabled = true;
@@ -62,7 +64,8 @@ namespace Chat
             {
                 if (e.SocketErrorCode == SocketError.ConnectionRefused)
                 {
-                    MessageBox.Show("Cannot connect to " + address, "Server unavailable", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(string.Format(Properties.Resources.CannotConnectTo, address),
+                        Properties.Resources.ServerUnavailable, MessageBoxButton.OK, MessageBoxImage.Error);
                     Dispatcher.Invoke(() => menu.IsEnabled = true);
                     client = null;
                 }
@@ -75,12 +78,14 @@ namespace Chat
             {
                 SocketAsyncState state = (SocketAsyncState)ar.AsyncState;
                 Log(Encoding.UTF8.GetString(state.buffer, 0, client.Client.EndReceive(ar)));
-                client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ClientReceiveCallback, state);
+                client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize,
+                    SocketFlags.None, ClientReceiveCallback, state);
             }
             catch (SocketException e)
             {
                 if (e.SocketErrorCode == SocketError.ConnectionReset)
-                    Log($"Server {((IPEndPoint)client.Client.RemoteEndPoint).Address} disconnected");
+                    Log(string.Format(Properties.Resources.ServerDisconnected,
+                        ((IPEndPoint)client.Client.RemoteEndPoint).Address));
             }
         }
 
@@ -90,7 +95,7 @@ namespace Chat
             {
                 TcpListener listener = new TcpListener(IPAddress.Any, 80);
                 listener.Start();
-                Log("Listener started");
+                Log(Properties.Resources.ServerStarted);
                 listener.BeginAcceptTcpClient(AcceptCallback, listener);
 
                 menu.IsEnabled = false;
@@ -100,7 +105,9 @@ namespace Chat
             catch (SocketException ex)
             {
                 if (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
-                    MessageBox.Show("Address already in use", "Cannot start server", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(Properties.Resources.AddressAlreadyInUse,
+                        Properties.Resources.CannotStartServer,
+                        MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -110,10 +117,11 @@ namespace Chat
             TcpClient acceptedClient = listener.EndAcceptTcpClient(ar);
             clients.Add(acceptedClient);
             IPAddress address = ((IPEndPoint)acceptedClient.Client.RemoteEndPoint).Address;
-            Log($"Client {address} accepted");
+            Log(string.Format(Properties.Resources.ClientAccepted, address));
 
             SocketAsyncState state = new SocketAsyncState(acceptedClient.Client);
-            acceptedClient.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ServerReceiveCallback, state);
+            acceptedClient.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize,
+                SocketFlags.None, ServerReceiveCallback, state);
             listener.BeginAcceptTcpClient(AcceptCallback, listener);
         }
 
@@ -124,18 +132,19 @@ namespace Chat
 
             try
             {
-                string receivedMessage = address + ": " + Encoding.UTF8.GetString(state.buffer, 0, state.socket.EndReceive(ar));
+                string receivedMessage = address + ": " +
+                    Encoding.UTF8.GetString(state.buffer, 0, state.socket.EndReceive(ar));
                 Log(receivedMessage);
                 foreach (TcpClient client in clients)
                     client.Client.Send(Encoding.UTF8.GetBytes(receivedMessage));
-                state.socket.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ServerReceiveCallback, state);
+                state.socket.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize,
+                    SocketFlags.None, ServerReceiveCallback, state);
             }
             catch (SocketException e)
             {
                 if (e.SocketErrorCode == SocketError.ConnectionReset)
                 {
-                    Log($"Client {address} disconnected");
-
+                    Log(string.Format(Properties.Resources.ClientDisconnected, address));
                     for (int i = clients.Count - 1; i >= 0; i--)
                         if (((IPEndPoint)clients[i].Client.RemoteEndPoint).Address == address)
                             clients.Remove(clients[i]);
@@ -160,7 +169,7 @@ namespace Chat
                     client.Client.Send(Encoding.UTF8.GetBytes(textBoxMessage.Text));
                 else
                 {
-                    string message = "server: " + textBoxMessage.Text;
+                    string message = Properties.Resources.Server + ": " + textBoxMessage.Text;
                     foreach (TcpClient client in clients)
                         client.Client.Send(Encoding.UTF8.GetBytes(message));
                     Log(message);

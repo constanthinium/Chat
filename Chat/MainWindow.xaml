@@ -4,8 +4,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Chat"
+        xmlns:p="clr-namespace:Chat.Properties"
         mc:Ignorable="d"
-        Title="Chat"
+        Title="{x:Static p:Resources.Chat}"
         Width="320" Height="240"
         MinWidth="320" MinHeight="240">
     <Grid>
@@ -16,8 +17,8 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Menu Name="menu">
-            <MenuItem Header="Client" Click="MenuItemClient_Click" Padding="16" />
-            <MenuItem Header="Server" Click="MenuItemServer_Click" Padding="16" />
+            <MenuItem Header="{x:Static p:Resources.Client}" Click="MenuItemClient_Click" Padding="16" />
+            <MenuItem Header="{x:Static p:Resources.Server}" Click="MenuItemServer_Click" Padding="16" />
         </Menu>
         <TextBox Grid.Row="1" Name="textBoxLogs" IsReadOnly="True" VerticalScrollBarVisibility="Auto" />
         <Grid Name="gridMessaging" IsEnabled="False" Grid.Row="2">
@@ -26,7 +27,7 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBox Name="textBoxMessage" Padding="16" KeyDown="TextBoxMessage_KeyDown" />
-            <Button Grid.Column="1" Content="Send" Padding="16" Click="ButtonSend_Click" />
+            <Button Grid.Column="1" Content="{x:Static p:Resources.Send}" Padding="16" Click="ButtonSend_Click" />
         </Grid>
         <StatusBar Grid.Row="3">
             <StatusBarItem Name="statusBarItem" Content=""/>
