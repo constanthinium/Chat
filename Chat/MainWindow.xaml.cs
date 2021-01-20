@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 
@@ -27,16 +27,17 @@ namespace Chat
                 IPAddress address = inputBox.input != "" ? IPAddress.Parse(inputBox.input) : IPAddress.Loopback;
                 client.Connect(address, 80);
                 Log("Connected to " + address);
-                new Thread(() =>
-                {
-                    byte[] buffer = new byte[64];
-                    while (true)
-                    {
-                        int bytesCount = client.Client.Receive(buffer);
-                        Log(Encoding.UTF8.GetString(buffer, 0, bytesCount));
-                    }
-                }).Start();
+
+                SocketAsyncState state = new SocketAsyncState(client.Client);
+                client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ClientReceiveCallback, state);
             }
+        }
+
+        private void ClientReceiveCallback(IAsyncResult ar)
+        {
+            SocketAsyncState state = (SocketAsyncState)ar.AsyncState;
+            Log(Encoding.UTF8.GetString(state.buffer, 0, client.Client.EndReceive(ar)));
+            client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ClientReceiveCallback, state);
         }
 
         private void MenuItemServer_Click(object sender, RoutedEventArgs e)
@@ -44,29 +45,31 @@ namespace Chat
             TcpListener listener = new TcpListener(IPAddress.Any, 80);
             listener.Start();
             Log("Listener started");
-            new Thread(() =>
-            {
-                while (true)
-                {
-                    TcpClient acceptedClient = listener.AcceptTcpClient();
-                    clients.Add(acceptedClient);
-                    IPAddress address = ((IPEndPoint)acceptedClient.Client.RemoteEndPoint).Address;
-                    Log("Client accepted " + address);
+            listener.BeginAcceptTcpClient(AcceptCallback, listener);
+        }
 
-                    new Thread(() =>
-                    {
-                        byte[] buffer = new byte[64];
-                        while (true)
-                        {
-                            int bytesCount = acceptedClient.Client.Receive(buffer);
-                            string receivedMessage = address + ": " + Encoding.UTF8.GetString(buffer, 0, bytesCount);
-                            Log(receivedMessage);
-                            foreach (TcpClient client in clients)
-                                client.Client.Send(Encoding.UTF8.GetBytes(receivedMessage));
-                        }
-                    }).Start();
-                }
-            }).Start();
+        void AcceptCallback(IAsyncResult ar)
+        {
+            TcpListener listener = (TcpListener)ar.AsyncState;
+            TcpClient acceptedClient = listener.EndAcceptTcpClient(ar);
+            clients.Add(acceptedClient);
+            IPAddress address = ((IPEndPoint)acceptedClient.Client.RemoteEndPoint).Address;
+            Log($"Client {address} accepted");
+
+            SocketAsyncState state = new SocketAsyncState(acceptedClient.Client);
+            acceptedClient.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ServerReceiveCallback, state);
+            listener.BeginAcceptTcpClient(AcceptCallback, listener);
+        }
+
+        void ServerReceiveCallback(IAsyncResult ar)
+        {
+            SocketAsyncState state = (SocketAsyncState)ar.AsyncState;
+            int bytesCount = state.socket.EndReceive(ar);
+            string receivedMessage = ((IPEndPoint)state.socket.RemoteEndPoint).Address + ": " + Encoding.UTF8.GetString(state.buffer, 0, bytesCount);
+            Log(receivedMessage);
+            foreach (TcpClient client in clients)
+                client.Client.Send(Encoding.UTF8.GetBytes(receivedMessage));
+            state.socket.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ServerReceiveCallback, state);
         }
 
         private void Log(string message)
