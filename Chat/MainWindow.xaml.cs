@@ -11,7 +11,7 @@ namespace Chat
     public partial class MainWindow : Window
     {
         TcpClient client;
-        List<TcpClient> clients = new List<TcpClient>();
+        readonly List<TcpClient> clients = new List<TcpClient>();
 
         public MainWindow()
         {
@@ -35,9 +35,17 @@ namespace Chat
 
         private void ClientReceiveCallback(IAsyncResult ar)
         {
-            SocketAsyncState state = (SocketAsyncState)ar.AsyncState;
-            Log(Encoding.UTF8.GetString(state.buffer, 0, client.Client.EndReceive(ar)));
-            client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ClientReceiveCallback, state);
+            try
+            {
+                SocketAsyncState state = (SocketAsyncState)ar.AsyncState;
+                Log(Encoding.UTF8.GetString(state.buffer, 0, client.Client.EndReceive(ar)));
+                client.Client.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ClientReceiveCallback, state);
+            }
+            catch (SocketException e)
+            {
+                if (e.SocketErrorCode == SocketError.ConnectionReset)
+                    Log($"Server {((IPEndPoint)client.Client.RemoteEndPoint).Address} disconnected");
+            }
         }
 
         private void MenuItemServer_Click(object sender, RoutedEventArgs e)
@@ -64,12 +72,27 @@ namespace Chat
         void ServerReceiveCallback(IAsyncResult ar)
         {
             SocketAsyncState state = (SocketAsyncState)ar.AsyncState;
-            int bytesCount = state.socket.EndReceive(ar);
-            string receivedMessage = ((IPEndPoint)state.socket.RemoteEndPoint).Address + ": " + Encoding.UTF8.GetString(state.buffer, 0, bytesCount);
-            Log(receivedMessage);
-            foreach (TcpClient client in clients)
-                client.Client.Send(Encoding.UTF8.GetBytes(receivedMessage));
-            state.socket.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ServerReceiveCallback, state);
+            IPAddress address = ((IPEndPoint)state.socket.RemoteEndPoint).Address;
+
+            try
+            {
+                string receivedMessage = address + ": " + Encoding.UTF8.GetString(state.buffer, 0, state.socket.EndReceive(ar));
+                Log(receivedMessage);
+                foreach (TcpClient client in clients)
+                    client.Client.Send(Encoding.UTF8.GetBytes(receivedMessage));
+                state.socket.BeginReceive(state.buffer, 0, SocketAsyncState.bufferSize, SocketFlags.None, ServerReceiveCallback, state);
+            }
+            catch (SocketException e)
+            {
+                if (e.SocketErrorCode == SocketError.ConnectionReset)
+                {
+                    Log($"Client {address} disconnected");
+
+                    for (int i = clients.Count - 1; i >= 0; i--)
+                        if (((IPEndPoint)clients[i].Client.RemoteEndPoint).Address == address)
+                            clients.Remove(clients[i]);
+                }
+            }
         }
 
         private void Log(string message)
@@ -81,22 +104,17 @@ namespace Chat
             });
         }
 
-        string GetLocalIPAddress()
-        {
-            using (UdpClient client = new UdpClient())
-            {
-                client.Connect("8.8.8.8", 80);
-                return (client.Client.LocalEndPoint as IPEndPoint).Address.ToString();
-            }
-        }
-
         private void ButtonSend_Click(object sender, RoutedEventArgs e)
         {
             if (client != null)
                 client.Client.Send(Encoding.UTF8.GetBytes(textBoxMessage.Text));
             else
+            {
+                string message = "server: " + textBoxMessage.Text;
                 foreach (TcpClient client in clients)
-                    client.Client.Send(Encoding.UTF8.GetBytes("admin: " + textBoxMessage.Text));
+                    client.Client.Send(Encoding.UTF8.GetBytes(message));
+                Log(message);
+            }
             textBoxMessage.Clear();
         }
 
