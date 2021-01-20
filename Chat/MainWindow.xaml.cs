@@ -86,14 +86,22 @@ namespace Chat
 
         private void MenuItemServer_Click(object sender, RoutedEventArgs e)
         {
-            TcpListener listener = new TcpListener(IPAddress.Any, 80);
-            listener.Start();
-            Log("Listener started");
-            listener.BeginAcceptTcpClient(AcceptCallback, listener);
+            try
+            {
+                TcpListener listener = new TcpListener(IPAddress.Any, 80);
+                listener.Start();
+                Log("Listener started");
+                listener.BeginAcceptTcpClient(AcceptCallback, listener);
 
-            menu.IsEnabled = false;
-            gridMessaging.IsEnabled = true;
-            textBoxMessage.Focus();
+                menu.IsEnabled = false;
+                gridMessaging.IsEnabled = true;
+                textBoxMessage.Focus();
+            }
+            catch (SocketException ex)
+            {
+                if (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+                    MessageBox.Show("Address already in use", "Cannot start server", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         void AcceptCallback(IAsyncResult ar)
